@@ -18,6 +18,8 @@ def credentials(token_path):
         expire_time = token_data["expireTime"]
         if not expire_time:
             expire_time = current_time - datetime.timedelta(seconds=10)
+        else:
+            expire_time = datetime.datetime.fromisoformat(expire_time)            
         credentials = Credentials(
             token=access_token,
             refresh_token=refresh_token,
