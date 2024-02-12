@@ -7,8 +7,8 @@ from google.auth.transport.requests import Request
 
 
 def credentials(token_path):
-    current_time = datetime.datetime.utcnow()    
-    with open(token_path, "r") as token_file:        
+    current_time = datetime.datetime.utcnow()
+    with open(token_path, "r") as token_file:
         token_data = json.load(token_file)
         access_token = token_data["access_token"]
         refresh_token = token_data["refresh_token"]
@@ -25,11 +25,11 @@ def credentials(token_path):
             client_id=client_id,
             client_secret=client_secret,
             scopes=[token_data["scope"]],
-            expiry=expire_time
-        )                
+            expiry=expire_time,
+        )
 
     if credentials.expired:
-        credentials.refresh(Request())           
+        credentials.refresh(Request())
         expiration_time = current_time + datetime.timedelta(seconds=expires_in)
         expiration_time_str = expiration_time.isoformat()
         with open(token_path, "w") as token_file:
@@ -40,6 +40,8 @@ def credentials(token_path):
                 "token_type": "Bearer",
                 "scope": credentials.scopes[0],
                 "expireTime": expiration_time_str,
+                "client_id": client_id,
+                "client_secret": client_secret,
             }
             json.dump(token_data, token_file)
     access_token = credentials.token
