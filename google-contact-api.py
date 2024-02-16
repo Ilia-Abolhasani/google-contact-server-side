@@ -7,6 +7,7 @@ import argparse
 import requests
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
 
 
 def credentials(token_path):
@@ -49,6 +50,7 @@ def credentials(token_path):
                 "client_secret": client_secret,
             }
             json.dump(token_data, token_file)
+    return credentials
     access_token = credentials.token
     return access_token
 
@@ -81,27 +83,20 @@ def create_contact(access_token, first_name, last_name, company, mobile, email, 
         print("Error adding contact:", response.text)
 
 def edit_contact(access_token, contact_id, first_name, last_name, company, mobile, email, note):
-    api_url = f"https://people.googleapis.com/v1/people/{contact_id}:updateContact"
+    service = build('people', 'v1', credentials=access_token)
+    aContact = service.people().get(
+        resourceName = contact_id, 
+        personFields = 'phoneNumbers'
+    ).execute()
+    names = aContact['phoneNumbers'][0]        
+    names['value'] = '+098999999'
+    aContact['phoneNumbers'] = names
+    result = service.people().updateContact(
+        resourceName =  contact_id, 
+        body = aContact, 
+        updatePersonFields = 'phoneNumbers'
+    ).execute()
 
-    contact_data = {
-        "names": [{"givenName": first_name, "familyName": last_name}],
-        "organizations": [{"name": company}],
-        "phoneNumbers": [{"value": mobile}],
-        "emailAddresses": [{"value": email}],
-        "biographies": [{"value": note}],
-    }
-
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json",
-    }
-
-    response = requests.put(api_url, headers=headers, json=contact_data)
-
-    if response.status_code == 200:
-        print("Contact updated successfully.")
-    else:
-        print("Error updating contact:", response.text)
 
 def delete_contact(access_token, contact_id):
     api_url = f"https://people.googleapis.com/v1/people/{contact_id}:deleteContact"
@@ -117,7 +112,6 @@ def delete_contact(access_token, contact_id):
         print("Contact deleted successfully.")
     else:
         print("Error deleting contact:", response.text)
-
 
 def main():
     parser = argparse.ArgumentParser(description="Manage Google Contacts.")
