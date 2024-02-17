@@ -64,7 +64,7 @@ def create_contact(credentials, first_name, last_name, company, mobile_list, ema
     }    
     result = service.people().createContact(body=contact_data).execute()
     resource_name = result.get("resourceName", "")
-    print("Contact added successfully. Resource name:", resource_name)
+    print(resource_name)
 
 
 def edit_contact(credentials, resource_name, first_name, last_name, company, mobile_list, email, note):
