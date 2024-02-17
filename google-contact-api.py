@@ -10,7 +10,7 @@ from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 
 
-def credentials(token_path):
+def get_credentials(token_path):
     current_time = datetime.datetime.utcnow()
     with open(token_path, "r") as token_file:
         token_data = json.load(token_file)
@@ -51,67 +51,70 @@ def credentials(token_path):
             }
             json.dump(token_data, token_file)
     return credentials
-    access_token = credentials.token
-    return access_token
 
-
-def create_contact(access_token, first_name, last_name, company, mobile, email, note):
-    api_url = "https://people.googleapis.com/v1/people:createContact"
-
+def create_contact(credentials, first_name, last_name, company, mobile_list, email, note):
+    service = build('people', 'v1', credentials=credentials)
     contact_data = {
         "names": [{"givenName": first_name, "familyName": last_name}],
         "organizations": [{"name": company}],
-        "phoneNumbers": [{"value": mobile}],
+        "phoneNumbers": [{"value": phone} for phone in mobile_list],
         "emailAddresses": [{"value": email}],
         "biographies": [{"value": note}],
-    }
+    }    
+    result = service.people().createContact(body=contact_data).execute()
+    resource_name = result.get("resourceName", "")
+    print("Contact added successfully. Resource name:", resource_name)
 
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json",
-    }
 
-    response = requests.post(api_url, headers=headers, json=contact_data)
-
-    if response.status_code == 200:
-        contact_details = response.json()
-        contact_id = contact_details.get("resourceName", "")
-        contact_id = contact_id.replace("people/","")
-        print("Contact added successfully. Contact ID:", contact_id)
-
-    else:
-        print("Error adding contact:", response.text)
-
-def edit_contact(access_token, contact_id, first_name, last_name, company, mobile, email, note):
-    service = build('people', 'v1', credentials=access_token)
-    aContact = service.people().get(
-        resourceName = contact_id, 
-        personFields = 'phoneNumbers'
+def edit_contact(credentials, resource_name, first_name, last_name, company, mobile_list, email, note):
+    service = build('people', 'v1', credentials=credentials)
+    personFields = 'names,phoneNumbers,emailAddresses,organizations,biographies'
+    contact = service.people().get(
+        resourceName = resource_name, 
+        personFields = personFields
     ).execute()
-    names = aContact['phoneNumbers'][0]        
-    names['value'] = '+098999999'
-    aContact['phoneNumbers'] = names
+    #### update info 
+    names = contact['names']
+    names[0]['givenName'] = first_name
+    names[0]['familyName'] = last_name
+    names[0]['displayName'] = f'{first_name} {last_name}'
+    names[0]['displayNameLastFirst'] = f'{last_name}, {first_name}'
+    names[0]['unstructuredName'] = f'{first_name} {last_name}'
+    contact['names'] = names
+    ## phoneNumbers           
+    phones  = []
+    for phone_number in mobile_list:
+        phones.append({"value":phone_number})    
+    contact['phoneNumbers'] = phones 
+    ## emailAddresses
+    emails = contact['emailAddresses']
+    emails[0]['value'] = email
+    contact['emailAddresses'] = emails
+    ## organizations
+    organizations = contact['organizations']
+    organizations[0]['name'] = company
+    contact['organizations'] = organizations    
+    ## biographies    
+    biographies = contact['biographies']
+    biographies[0]['value'] = note
+    contact['biographies'] = biographies        
+        
     result = service.people().updateContact(
-        resourceName =  contact_id, 
-        body = aContact, 
-        updatePersonFields = 'phoneNumbers'
+        resourceName =  resource_name, 
+        body = contact, 
+        updatePersonFields = personFields
     ).execute()
 
 
-def delete_contact(access_token, contact_id):
-    api_url = f"https://people.googleapis.com/v1/people/{contact_id}:deleteContact"
+def delete_contact(credentials, resource_name):
+    service = build('people', 'v1', credentials=credentials)
+    result = service.people().deleteContact(resourceName=resource_name).execute()
 
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json",
-    }
-
-    response = requests.delete(api_url, headers=headers)
-
-    if response.status_code == 200:
+    if result:
         print("Contact deleted successfully.")
     else:
-        print("Error deleting contact:", response.text)
+        print("Error deleting contact:", result)
+
 
 def main():
     parser = argparse.ArgumentParser(description="Manage Google Contacts.")
@@ -125,31 +128,31 @@ def main():
     create_parser.add_argument("--first-name", required=True, help="First name of the contact")
     create_parser.add_argument("--last-name", required=True, help="Last name of the contact")
     create_parser.add_argument("--company", required=True, help="Company of the contact")
-    create_parser.add_argument("--mobile", required=True, help="Mobile number of the contact")
+    create_parser.add_argument("--mobile", nargs='+', required=True, help="Mobile number of the contact")
     create_parser.add_argument("--email", required=False, help="Email address of the contact")
     create_parser.add_argument("--note", required=False, help="Note about the contact")
 
     # Edit sub-command
     edit_parser = subparsers.add_parser("edit", help="Edit an existing contact")
-    edit_parser.add_argument("contact_id", help="ID of the contact to edit")
+    edit_parser.add_argument("resource_name", help="ID of the contact to edit")
     edit_parser.add_argument("--first-name", required=True, help="First name of the contact")
     edit_parser.add_argument("--last-name", required=True, help="Last name of the contact")
     edit_parser.add_argument("--company", required=True, help="Company of the contact")
-    edit_parser.add_argument("--mobile", required=True, help="Mobile number of the contact")
+    edit_parser.add_argument("--mobile", nargs='+', required=True, help="Mobile number of the contact")
     edit_parser.add_argument("--email", required=False, help="Email address of the contact")
     edit_parser.add_argument("--note", required=False, help="Note about the contact")
 
     # Delete sub-command
     delete_parser = subparsers.add_parser("delete", help="Delete an existing contact")
-    delete_parser.add_argument("contact_id", help="ID of the contact to delete")
+    delete_parser.add_argument("resource_name", help="ID of the contact to delete")
 
     args = parser.parse_args()
 
-    access_token = credentials(args.token_path)
+    credentials = get_credentials(args.token_path)
 
     if args.operation == "create":
         create_contact(
-            access_token, 
+            credentials, 
             args.first_name, 
             args.last_name, 
             args.company, 
@@ -159,8 +162,8 @@ def main():
         )
     elif args.operation == "edit":
         edit_contact(
-            access_token, 
-            args.contact_id, 
+            credentials, 
+            args.resource_name, 
             args.first_name, 
             args.last_name, 
             args.company, 
@@ -169,7 +172,7 @@ def main():
             args.note
         )
     elif args.operation == "delete":
-        delete_contact(access_token, args.contact_id)
+        delete_contact(credentials, args.resource_name)
 
 
 if __name__ == "__main__":
