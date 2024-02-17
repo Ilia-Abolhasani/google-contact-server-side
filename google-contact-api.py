@@ -52,6 +52,7 @@ def get_credentials(token_path):
             json.dump(token_data, token_file)
     return credentials
 
+
 def create_contact(credentials, first_name, last_name, company, mobile_list, email, note):
     service = build('people', 'v1', credentials=credentials)
     contact_data = {
@@ -90,14 +91,22 @@ def edit_contact(credentials, resource_name, first_name, last_name, company, mob
     emails = contact['emailAddresses']
     emails[0]['value'] = email
     contact['emailAddresses'] = emails
-    ## organizations
-    organizations = contact['organizations']
-    organizations[0]['name'] = company
-    contact['organizations'] = organizations    
+    ## organizations    
+    if "organizations" in contact:
+        organizations = contact['organizations']
+        organizations[0]['name'] = company
+        contact['organizations'] = organizations    
+    elif company:
+        contact['organizations'] = [{'name':company}]
+
     ## biographies    
-    biographies = contact['biographies']
-    biographies[0]['value'] = note
-    contact['biographies'] = biographies        
+    if "biographies" in contact:
+        biographies = contact['biographies']
+        biographies[0]['value'] = note
+        contact['biographies'] = biographies
+    elif note:
+        contact['biographies'] = [{'value':note}]
+
         
     result = service.people().updateContact(
         resourceName =  resource_name, 
@@ -127,7 +136,7 @@ def main():
     create_parser = subparsers.add_parser("create", help="Create a new contact")
     create_parser.add_argument("--first-name", required=True, help="First name of the contact")
     create_parser.add_argument("--last-name", required=True, help="Last name of the contact")
-    create_parser.add_argument("--company", required=True, help="Company of the contact")
+    create_parser.add_argument("--company", required=False, help="Company of the contact")
     create_parser.add_argument("--mobile", nargs='+', required=True, help="Mobile number of the contact")
     create_parser.add_argument("--email", required=False, help="Email address of the contact")
     create_parser.add_argument("--note", required=False, help="Note about the contact")
@@ -137,7 +146,7 @@ def main():
     edit_parser.add_argument("resource_name", help="ID of the contact to edit")
     edit_parser.add_argument("--first-name", required=True, help="First name of the contact")
     edit_parser.add_argument("--last-name", required=True, help="Last name of the contact")
-    edit_parser.add_argument("--company", required=True, help="Company of the contact")
+    edit_parser.add_argument("--company", required=False, help="Company of the contact")
     edit_parser.add_argument("--mobile", nargs='+', required=True, help="Mobile number of the contact")
     edit_parser.add_argument("--email", required=False, help="Email address of the contact")
     edit_parser.add_argument("--note", required=False, help="Note about the contact")
