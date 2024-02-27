@@ -34,7 +34,7 @@ def get_credentials(token_path):
             expiry=expire_time,
         )
 
-    if credentials.expired:
+    if credentials.expired or True:
         credentials.refresh(Request())
         expiration_time = current_time + datetime.timedelta(seconds=expires_in)
         expiration_time_str = expiration_time.isoformat()
