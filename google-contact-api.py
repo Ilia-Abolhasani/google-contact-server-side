@@ -113,6 +113,7 @@ def edit_contact(credentials, resource_name, first_name, last_name, company, mob
         body = contact, 
         updatePersonFields = personFields
     ).execute()
+    print("Contact edited successfully.")
 
 
 def delete_contact(credentials, resource_name):
