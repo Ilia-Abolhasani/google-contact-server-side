@@ -175,18 +175,24 @@ def main():
             args.note
         )
     elif args.operation == "edit":
-        edit_contact(
-            credentials, 
-            args.resource_name, 
-            args.first_name, 
-            args.last_name, 
-            args.company, 
-            args.mobile, 
-            args.email, 
-            args.note
-        )
+        try:
+            edit_contact(
+                credentials, 
+                args.resource_name, 
+                args.first_name, 
+                args.last_name, 
+                args.company, 
+                args.mobile, 
+                args.email, 
+                args.note
+            )
+        except:
+            print(0)
     elif args.operation == "delete":
-        delete_contact(credentials, args.resource_name)
+        try:
+            delete_contact(credentials, args.resource_name)
+        except:
+            print(0)
 
 
 if __name__ == "__main__":
