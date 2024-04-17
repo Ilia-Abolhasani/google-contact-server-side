@@ -113,7 +113,11 @@ def edit_contact(credentials, resource_name, first_name, last_name, company, mob
         body = contact, 
         updatePersonFields = personFields
     ).execute()
-    print("Contact edited successfully.")
+    if result:
+        print(1)
+    else:
+        print(0)
+
 
 
 def delete_contact(credentials, resource_name):
@@ -121,9 +125,9 @@ def delete_contact(credentials, resource_name):
     result = service.people().deleteContact(resourceName=resource_name).execute()
 
     if result:
-        print("Contact deleted successfully.")
+        print(1)
     else:
-        print("Error deleting contact:", result)
+        print(0)
 
 
 def main():
