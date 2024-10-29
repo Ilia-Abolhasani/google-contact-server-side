@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Blueprint
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
@@ -7,6 +7,7 @@ import datetime
 
 app = Flask(__name__)
 TOKEN_PATH = "./token.json"
+api_bp = Blueprint("api", __name__, url_prefix="/raman")
 
 
 def get_credentials():
@@ -51,7 +52,7 @@ def get_credentials():
     return credentials
 
 
-@app.route("/create", methods=["POST"])
+@api_bp.route("/create", methods=["POST"])
 def create_contact():
     data = request.json
     credentials = get_credentials()
@@ -67,7 +68,7 @@ def create_contact():
     return jsonify({"resource_name": result.get("resourceName", "")})
 
 
-@app.route("/edit", methods=["PUT"])
+@api_bp.route("/edit", methods=["PUT"])
 def edit_contact():
     data = request.json
     credentials = get_credentials()
@@ -98,7 +99,7 @@ def edit_contact():
     return jsonify({"success": True})
 
 
-@app.route("/delete", methods=["DELETE"])
+@api_bp.route("/delete", methods=["DELETE"])
 def delete_contact():
     data = request.json
     credentials = get_credentials()
