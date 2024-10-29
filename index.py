@@ -5,7 +5,6 @@ from googleapiclient.discovery import build
 import json
 import datetime
 
-app = Flask(__name__)
 TOKEN_PATH = "./token.json"
 api_bp = Blueprint("api", __name__, url_prefix="/raman")
 
@@ -116,5 +115,6 @@ def delete_contact():
 
 
 if __name__ == "__main__":
+    app = Flask(__name__)
     app.register_blueprint(api_bp)
-    app.run(debug=True)
+    app.run(debug=False, host="0.0.0.0", port=5000)
