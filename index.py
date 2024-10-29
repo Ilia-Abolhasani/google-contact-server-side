@@ -7,6 +7,18 @@ import datetime
 
 TOKEN_PATH = "./token.json"
 api_bp = Blueprint("api", __name__, url_prefix="/raman")
+SHARED_KEY = ""
+
+
+def require_shared_key(f):
+    def decorated_function(*args, **kwargs):
+        shared_key = request.headers.get("Authorization")
+        if shared_key != f"{SHARED_KEY}":
+            abort(403, description="Forbidden: Invalid shared key")
+        return f(*args, **kwargs)
+
+    decorated_function.__name__ = f.__name__
+    return decorated_function
 
 
 def get_credentials():
@@ -57,6 +69,7 @@ def test_api():
 
 
 @api_bp.route("/create", methods=["POST"])
+@require_shared_key
 def create_contact():
     data = request.json
     credentials = get_credentials()
@@ -74,6 +87,7 @@ def create_contact():
 
 
 @api_bp.route("/edit", methods=["PUT"])
+@require_shared_key
 def edit_contact():
     data = request.json
     credentials = get_credentials()
@@ -105,6 +119,7 @@ def edit_contact():
 
 
 @api_bp.route("/delete", methods=["DELETE"])
+@require_shared_key
 def delete_contact():
     data = request.json
     credentials = get_credentials()
