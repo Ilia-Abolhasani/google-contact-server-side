@@ -69,6 +69,7 @@ def create_contact():
         "biographies": [{"value": data["note"]}],
     }
     result = service.people().createContact(body=contact_data).execute()
+    print(result)
     return jsonify({"resource_name": result.get("resourceName", "")})
 
 
