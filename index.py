@@ -52,6 +52,11 @@ def get_credentials():
     return credentials
 
 
+@api_bp.route("/test", methods=["GET"])
+def test_api():
+    return jsonify({"message": "API is working!"}), 200
+
+
 @api_bp.route("/create", methods=["POST"])
 def create_contact():
     data = request.json
@@ -111,4 +116,5 @@ def delete_contact():
 
 
 if __name__ == "__main__":
+    app.register_blueprint(api_bp)
     app.run(debug=True)
