@@ -13,37 +13,40 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up environment variables
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Deploy to server
         env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
           PORT: 5000
           BASE_PATH: "/home/raman/google-contact-server-side"
+        run: |
+          ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST << EOF
+            # Stop the service
+            sudo systemctl stop ramanserver.service
 
-      - name: Stop ramanserver service
-        run: sudo systemctl stop ramanserver.service
+            # Clear and recreate BASE_PATH directory
+            sudo rm -rf $BASE_PATH/*
+            mkdir -p $BASE_PATH
 
-      - name: Clear BASE_PATH directory
-        run: sudo rm -rf $BASE_PATH/*
+            # Create date file
+            sudo bash -c "date > $BASE_PATH/date.txt"
 
-      - name: Recreate BASE_PATH directory
-        run: mkdir -p $BASE_PATH
+            # Copy files to BASE_PATH
+            sudo cp -a ./* $BASE_PATH/
 
-      - name: Create date file
-        run: sudo bash -c "date > $BASE_PATH/date.txt"
+            # Write environment variable to .env file
+            echo "${{ secrets.ENV }}" | sudo tee $BASE_PATH/.env > /dev/null
 
-      - name: Copy files to BASE_PATH
-        run: sudo cp -a ./* $BASE_PATH/
+            # Install Python venv and dependencies
+            sudo apt-get install -y python3-venv
+            sudo python3 -m venv $BASE_PATH/venv
+            sudo $BASE_PATH/venv/bin/pip install -r $BASE_PATH/requirements.txt
 
-      - name: Write environment variable to .env file
-        run: echo "${{ secrets.ENV }}" | sudo tee $BASE_PATH/.env > /dev/null
-
-      - name: Install Python venv
-        run: sudo apt-get install -y python3-venv
-
-      - name: Create Python virtual environment
-        run: sudo python3 -m venv $BASE_PATH/venv
-
-      - name: Install dependencies
-        run: sudo $BASE_PATH/venv/bin/pip install -r $BASE_PATH/requirements.txt
-
-      - name: Restart ramanserver service
-        run: sudo systemctl restart ramanserver.service
+            # Restart the service
+            sudo systemctl restart ramanserver.service
+          EOF
