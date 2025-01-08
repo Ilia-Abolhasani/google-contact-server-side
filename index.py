@@ -25,6 +25,7 @@ def get_credentials():
     current_time = datetime.datetime.utcnow()
     with open(TOKEN_PATH, "r") as token_file:
         token_data = json.load(token_file)
+        print(token_data)
         access_token = token_data["access_token"]
         refresh_token = token_data["refresh_token"]
         expires_in = int(token_data["expires_in"])
